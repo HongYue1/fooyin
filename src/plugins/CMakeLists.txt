@@ -28,6 +28,7 @@ set(
     thumbnailtoolbar
     vumeter
     wavebar
+    limiter
 )
 
 set(
@@ -52,6 +53,7 @@ set(
     tageditor
     vumeter
     wavebar
+    limiter
 )
 
 if(BUILD_ALSA)
@@ -115,6 +117,7 @@ fooyin_add_selected_plugin(soundtouch)
 fooyin_add_selected_plugin(soxresampler)
 fooyin_add_selected_plugin(vumeter)
 fooyin_add_selected_plugin(wavebar)
+fooyin_add_selected_plugin(limiter)
 
 if(WIN32)
     fooyin_add_selected_plugin(mediacontrol)
