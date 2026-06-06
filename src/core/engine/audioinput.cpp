@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <core/engine/audioinput.h>
 
 #include <array>
+#include <utility>
 
 namespace Fooyin {
 class AudioDecoderPrivate
@@ -37,6 +38,16 @@ AudioDecoder::~AudioDecoder() = default;
 QStringList AudioDecoder::preferredExtensions() const
 {
     return {};
+}
+
+bool AudioDecoder::supportsRemoteSources() const
+{
+    return false;
+}
+
+bool AudioDecoder::needsMoreInput() const
+{
+    return false;
 }
 
 AudioDecoder::PlaybackHints AudioDecoder::playbackHints() const
@@ -71,9 +82,26 @@ int AudioDecoder::bitrate() const
 
 void AudioDecoder::start() { }
 
+AudioDecoder::ReadResult AudioDecoder::readAudio(size_t bytes)
+{
+    AudioBuffer buffer = readBuffer(bytes);
+    if(buffer.isValid()) {
+        return ReadResult::data(std::move(buffer));
+    }
+    if(needsMoreInput()) {
+        return ReadResult::needMoreInput();
+    }
+    return ReadResult::endOfStream();
+}
+
 QStringList AudioReader::preferredExtensions() const
 {
     return {};
+}
+
+bool AudioReader::supportsRemoteSources() const
+{
+    return false;
 }
 
 bool AudioReader::canWriteCover() const

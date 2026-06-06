@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,11 @@
 #include <core/engine/audioinput.h>
 #include <core/engine/inputplugin.h>
 
+#include <memory>
+
 namespace Fooyin {
 class AudioLoaderPrivate;
+class RemoteSourceProvider;
 class Track;
 
 struct LoadedSource
@@ -87,6 +90,9 @@ public:
 
     AudioLoader();
     ~AudioLoader();
+
+    //! Set the provider used to create devices for remote sources.
+    void setRemoteSourceProvider(std::shared_ptr<RemoteSourceProvider> provider);
 
     //! Persist current backend order/enable flags to settings storage.
     void saveState();

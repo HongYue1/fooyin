@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2022, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2022, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 class QEvent;
 
 namespace Fooyin {
+class EngineController;
 class SettingsManager;
 class PlayerController;
 class PlaylistController;
@@ -38,7 +39,7 @@ class StatusWidget : public FyWidget
     Q_OBJECT
 
 public:
-    StatusWidget(PlayerController* playerController, PlaylistHandler* playlistHandler,
+    StatusWidget(EngineController* engine, PlayerController* playerController, PlaylistHandler* playlistHandler,
                  PlaylistController* playlistController, TrackSelectionController* selectionController,
                  SettingsManager* settings, QWidget* parent = nullptr);
     ~StatusWidget() override;

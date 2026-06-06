@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -176,6 +176,8 @@ public:
     std::unordered_map<WidgetContext*, TrackSelection> m_contextSelection;
     WidgetContext* m_activeContext{nullptr};
     TrackSelection m_tracks;
+    std::optional<TrackSelection> m_menuSelection;
+    QPointer<QMenu> m_menuSelectionMenu;
     Playlist* m_tempPlaylist{nullptr};
 
     MenuNode m_trackRoot;
@@ -273,6 +275,7 @@ void TrackSelectionControllerPrivate::setupBuiltInMenus()
     Gui::setThemeIcon(m_removeFromQueue, Constants::Icons::Remove);
 
     const QStringList tracksCategory = {tr("Tracks")};
+    const QStringList queueCategory  = {tr("Tracks"), tr("Queue")};
 
     m_addCurrent->setStatusTip(tr("Append selected tracks to the current playlist"));
     auto* addCurrentCmd = m_actionManager->registerAction(m_addCurrent, Constants::Actions::AddToCurrent);
@@ -317,7 +320,7 @@ void TrackSelectionControllerPrivate::setupBuiltInMenus()
 
     m_addToQueue->setStatusTip(tr("Add the selected tracks to the playback queue"));
     auto* addQueueCmd = m_actionManager->registerAction(m_addToQueue, Constants::Actions::AddToQueue);
-    addQueueCmd->setCategories(tracksCategory);
+    addQueueCmd->setCategories(queueCategory);
     QObject::connect(m_addToQueue, &QAction::triggered, m_self, [this]() {
         if(const auto* selection = m_self->selectedSelection()) {
             m_playlistController->playerController()->queueTracks(queueTracksForSelection(*selection));
@@ -329,7 +332,7 @@ void TrackSelectionControllerPrivate::setupBuiltInMenus()
 
     m_queueNext->setStatusTip(tr("Add the selected tracks to the front of the playback queue"));
     auto* queueNextCmd = m_actionManager->registerAction(m_queueNext, Constants::Actions::QueueNext);
-    queueNextCmd->setCategories(tracksCategory);
+    queueNextCmd->setCategories(queueCategory);
     QObject::connect(m_queueNext, &QAction::triggered, m_self, [this]() {
         if(const auto* selection = m_self->selectedSelection()) {
             m_playlistController->playerController()->queueTracksNext(queueTracksForSelection(*selection));
@@ -341,7 +344,7 @@ void TrackSelectionControllerPrivate::setupBuiltInMenus()
 
     m_removeFromQueue->setStatusTip(tr("Remove the selected tracks from the playback queue"));
     auto* removeQueueCmd = m_actionManager->registerAction(m_removeFromQueue, Constants::Actions::RemoveFromQueue);
-    removeQueueCmd->setCategories(tracksCategory);
+    removeQueueCmd->setCategories(queueCategory);
     QObject::connect(m_removeFromQueue, &QAction::triggered, m_self, [this]() {
         if(const auto* selection = m_self->selectedSelection()) {
             m_playlistController->playerController()->dequeueTracks(queueTracksForSelection(*selection));
@@ -631,6 +634,16 @@ void TrackSelectionControllerPrivate::renderArea(QMenu* menu, TrackContextMenuAr
         return;
     }
 
+    m_menuSelection     = selection;
+    m_menuSelectionMenu = menu;
+
+    QObject::connect(menu, &QObject::destroyed, m_self, [this, menu]() {
+        if(m_menuSelectionMenu == menu) {
+            m_menuSelection.reset();
+            m_menuSelectionMenu.clear();
+        }
+    });
+
     if(const auto* root = rootForArea(area)) {
         const auto entries = orderedRootEntries(*root);
 
@@ -896,6 +909,11 @@ void TrackSelectionControllerPrivate::updateActiveContext(QWidget* widget)
             }
             focusedWidget = focusedWidget->parentWidget();
         }
+    }
+
+    if(std::exchange(m_activeContext, nullptr)) {
+        updateActionState();
+        QMetaObject::invokeMethod(m_self, &TrackSelectionController::selectionChanged);
     }
 }
 
@@ -1299,6 +1317,10 @@ bool TrackSelectionControllerPrivate::canWrite(const TrackSelection& selection) 
 
 const TrackSelection* TrackSelectionControllerPrivate::currentSelection() const
 {
+    if(m_menuSelection) {
+        return &*m_menuSelection;
+    }
+
     if(!m_tracks.tracks.empty()) {
         return &m_tracks;
     }

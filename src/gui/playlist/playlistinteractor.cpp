@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -193,6 +193,11 @@ PlayerController* PlaylistInteractor::playerController() const
 ScanRequest PlaylistInteractor::startFileScan(const QList<QUrl>& urls) const
 {
     return m_library->scanFiles(urls);
+}
+
+ScanRequest PlaylistInteractor::startTrackScan(const TrackList& tracks) const
+{
+    return m_library->scanTracks(tracks);
 }
 
 ScanRequest PlaylistInteractor::startPlaylistLoad(const QList<QUrl>& urls) const

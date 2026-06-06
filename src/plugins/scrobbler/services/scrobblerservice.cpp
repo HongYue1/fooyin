@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,8 @@ constexpr auto MinScrobbleDelayOnError = 30000;
 namespace {
 bool canBeScrobbled(const Fooyin::Track& track)
 {
-    return track.isValid() && track.hasArtists() && !track.title().isEmpty() && track.duration() >= 30000;
+    return track.isValid() && !track.isRemote() && track.hasArtists() && !track.title().isEmpty()
+        && track.duration() >= 30000;
 }
 } // namespace
 
@@ -244,11 +245,16 @@ void ScrobblerService::resumePendingSubmissions()
     doDelayedSubmit();
 }
 
-void ScrobblerService::updateNowPlaying(const Track& track)
+void ScrobblerService::restartScrobbleSession(const Track& track)
 {
     m_currentTrack = track;
     m_timestamp    = static_cast<uint64_t>(QDateTime::currentSecsSinceEpoch());
     m_scrobbled    = false;
+}
+
+void ScrobblerService::updateNowPlaying(const Track& track)
+{
+    restartScrobbleSession(track);
 
     if(!shouldUpdateNowPlaying(track)) {
         return;

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -254,6 +254,7 @@ enum GuiInternalSettings : uint32_t
     NowPlayingOutputFilePath                 = 68 | Type::String,
     NowPlayingOutputOptions                  = 69 | Type::Int,
     NowPlayingOutputAppendLineLimit          = 70 | Type::Int,
+    OutputDeviceRefreshMs                    = 71 | Type::Int,
 };
 Q_ENUM_NS(GuiInternalSettings)
 } // namespace Settings::Gui::Internal

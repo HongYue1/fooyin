@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ public:
 
 Q_SIGNALS:
     void clicked();
+    void colourUpdated(const QColor& colour);
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;

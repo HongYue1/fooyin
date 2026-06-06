@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ public:
 
     [[nodiscard]] QAction* containerAction() const override;
 
+    using ActionContainer::insertAction;
     void insertAction(QAction* beforeAction, QAction* action) override;
     void insertAction(QAction* beforeAction, Command* action) override;
     void insertMenu(QAction* beforeAction, ActionContainer* container) override;
@@ -66,6 +67,7 @@ public:
 
     [[nodiscard]] QAction* containerAction() const override;
 
+    using ActionContainer::insertAction;
     void insertAction(QAction* beforeAction, QAction* action) override;
     void insertAction(QAction* beforeAction, Command* action) override;
     void insertMenu(QAction* beforeAction, ActionContainer* container) override;

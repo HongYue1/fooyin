@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@ QString stristr(const QStringList& vec);
 QString strstrLast(const QStringList& vec);
 QString stristrLast(const QStringList& vec);
 QString split(const QStringList& vec);
+QString join(const QStringList& vec);
 QString len(const QStringList& vec);
 QString longest(const QStringList& vec);
 QString crlf(const QStringList& vec);

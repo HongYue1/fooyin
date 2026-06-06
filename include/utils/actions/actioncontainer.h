@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,8 +91,10 @@ public:
     [[nodiscard]] virtual QAction* containerAction() const = 0;
     virtual QAction* actionForItem(QObject* item) const;
 
-    virtual void insertAction(QAction* beforeAction, QAction* action)          = 0;
-    virtual void insertAction(QAction* beforeAction, Command* action)          = 0;
+    virtual void insertAction(QAction* beforeAction, QAction* action) = 0;
+    virtual void insertAction(QAction* beforeAction, Command* action) = 0;
+    virtual void insertAction(const Id& beforeAction, QAction* action);
+    virtual void insertAction(const Id& beforeAction, Command* action);
     virtual void insertMenu(QAction* beforeAction, ActionContainer* container) = 0;
 
     [[nodiscard]] virtual DisabledBehavior disabledBehavior() const;

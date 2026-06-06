@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2022, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2022, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -116,6 +116,7 @@ public:
     void requestTrackChange(const Player::TrackChangeRequest& request);
     bool updatePlaystate(Player::PlayState state);
     void restartCurrentTrackProgressIfNeeded();
+    void restoreRemoteCurrentTrackFromPlaylist();
     bool enterStoppedState(bool requestTransportStop);
     void emitPositionSignals(const PlaybackProgressTracker::PositionUpdate& update);
     void syncCommittedPlaylistTrack() const;
@@ -384,8 +385,9 @@ void PlayerControllerPrivate::requestTrackChange(const Player::TrackChangeReques
 
 bool PlayerControllerPrivate::updatePlaystate(Player::PlayState state)
 {
-    if(std::exchange(m_playState, state) != state) {
-        Q_EMIT m_self->playStateChanged(state);
+    const auto prevState = std::exchange(m_playState, state);
+    if(prevState != state) {
+        Q_EMIT m_self->playStateChanged(state, prevState);
         Q_EMIT m_self->playbackSnapshotChanged(m_self->playbackSnapshot());
         return true;
     }
@@ -406,8 +408,42 @@ void PlayerControllerPrivate::restartCurrentTrackProgressIfNeeded()
     m_progressTracker.restartTracking();
 }
 
+void PlayerControllerPrivate::restoreRemoteCurrentTrackFromPlaylist()
+{
+    const PlaylistTrack currentTrack = m_session.currentTrack();
+    if(!currentTrack.isValid() || !currentTrack.track.isRemote()) {
+        return;
+    }
+
+    const auto playlistTrack = remapPlaylistTrackReference(m_playlistHandler, currentTrack);
+    if(!playlistTrack.has_value()) {
+        return;
+    }
+
+    bool currentTrackChanged{false};
+    bool playlistTrackChanged{false};
+
+    currentTrackChanged |= m_session.updateCurrentTrack(playlistTrack->track);
+    playlistTrackChanged |= m_session.updateCurrentTrackPlaylist(playlistTrack->playlistId);
+    playlistTrackChanged |= m_session.updateCurrentTrackEntry(playlistTrack->entryId);
+    playlistTrackChanged |= m_session.updateCurrentTrackIndex(playlistTrack->indexInPlaylist);
+
+    if(!currentTrackChanged && !playlistTrackChanged) {
+        return;
+    }
+
+    syncCommittedPlaylistTrack();
+
+    if(currentTrackChanged) {
+        Q_EMIT m_self->currentTrackUpdated(m_session.currentTrack().track);
+    }
+    Q_EMIT m_self->playlistTrackUpdated(m_session.currentTrack());
+}
+
 bool PlayerControllerPrivate::enterStoppedState(bool requestTransportStop)
 {
+    restoreRemoteCurrentTrackFromPlaylist();
+
     if(!updatePlaystate(Player::PlayState::Stopped)) {
         return false;
     }
@@ -1262,7 +1298,8 @@ void PlayerController::setCurrentPosition(uint64_t ms)
 {
     const PlaybackProgressTracker::PositionUpdate update = p->m_progressTracker.updatePosition(ms);
 
-    if(update.reachedPlayedThreshold && p->m_session.currentTrack().isValid()) {
+    if(update.reachedPlayedThreshold && p->m_session.currentTrack().isValid()
+       && !p->m_session.currentTrack().track.isRemote()) {
         qCDebug(PLAYER_CONTROLLER) << "Track reached played threshold:" << "id="
                                    << p->m_session.currentTrack().track.id()
                                    << "path=" << p->m_session.currentTrack().track.uniqueFilepath()
@@ -1356,7 +1393,8 @@ void PlayerController::commitCurrentTrack(const PlaylistTrack& track, const Play
 void PlayerController::updateCurrentTrack(const Track& track)
 {
     if(p->m_session.updateCurrentTrack(track)) {
-        Q_EMIT currentTrackUpdated(track);
+        Q_EMIT currentTrackUpdated(p->m_session.currentTrack().track);
+        Q_EMIT playlistTrackUpdated(p->m_session.currentTrack());
     }
 }
 

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,10 @@
 
 #include <QObject>
 
+#include <vector>
+
 class QAction;
+class QActionGroup;
 
 namespace Fooyin {
 class ActionContainer;
@@ -43,11 +46,13 @@ public:
 
 Q_SIGNALS:
     void changeLayout(const Fooyin::FyLayout& layout);
+    void clearLayout();
     void importLayout();
     void exportLayout();
 
 private:
-    void addLayout(const FyLayout& layout);
+    void refreshLayouts();
+    void updateCurrentLayout();
 
     ActionManager* m_actionManager;
     LayoutProvider* m_layoutProvider;
@@ -58,5 +63,8 @@ private:
     Command* m_layoutEditingCmd;
     QAction* m_lockSplitters;
     Command* m_lockSplittersCmd;
+    QAction* m_clearLayout;
+    QActionGroup* m_layoutActionGroup;
+    std::vector<QAction*> m_layoutActions;
 };
 } // namespace Fooyin

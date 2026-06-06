@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,8 +52,12 @@ bool ColourButton::colourChanged() const
 
 void ColourButton::setColour(const QColor& colour)
 {
-    m_colour = colour;
+    if(std::exchange(m_colour, colour) == colour) {
+        return;
+    }
+
     update();
+    Q_EMIT colourUpdated(m_colour);
 }
 
 void ColourButton::mousePressEvent(QMouseEvent* event)

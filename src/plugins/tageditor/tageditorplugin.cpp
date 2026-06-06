@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,10 +47,16 @@ using namespace Qt::StringLiterals;
 
 namespace Fooyin::TagEditor {
 namespace {
+bool isDbOnlyMetadataTrack(const Track& track)
+{
+    return track.isRemote() && track.isInDatabase();
+}
+
 bool canWriteTracks(const TrackList& tracks, const std::shared_ptr<AudioLoader>& audioLoader)
 {
     return !tracks.empty() && std::ranges::all_of(tracks, [&audioLoader](const Track& track) {
-        return !track.hasCue() && !track.isInArchive() && audioLoader->canWriteMetadata(track);
+        return !track.hasCue() && !track.isInArchive()
+            && (isDbOnlyMetadataTrack(track) || audioLoader->canWriteMetadata(track));
     });
 }
 } // namespace

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +63,8 @@ void FiltersPlugin::initialise(const GuiPluginContext& context)
             ContextMenuSettings::makeFileStringListWriter(m_core->settingsManager,
                                                           FilterContextMenu::DisabledSectionsKey),
             ContextMenuSettings::makeFileStringListReader(m_core->settingsManager, FilterContextMenu::LayoutKey),
-            ContextMenuSettings::makeFileStringListWriter(m_core->settingsManager, FilterContextMenu::LayoutKey)),
+            ContextMenuSettings::makeFileStringListWriter(m_core->settingsManager, FilterContextMenu::LayoutKey),
+            FilterContextMenu::defaultDisabledSections()),
         this);
 
     context.widgetProvider->registerWidget(

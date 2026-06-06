@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include <QBasicTimer>
 #include <QTimerEvent>
+#include <core/player/playerdefs.h>
 
 #include <memory>
 #include <vector>
@@ -63,6 +64,7 @@ protected:
 
 private:
     void currentTrackChanged(const Track& track);
+    void handlePlayStateChanged(Player::PlayState state, Player::PlayState previous);
     [[nodiscard]] bool currentTrackReachedScrobbleThreshold() const;
     void updateScrobbleThreshold();
 

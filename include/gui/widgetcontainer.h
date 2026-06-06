@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@
 #include "fygui_export.h"
 
 #include <gui/fywidget.h>
+
+class QPoint;
 
 namespace Fooyin {
 class SettingsManager;
@@ -46,7 +48,9 @@ public:
     [[nodiscard]] virtual int widgetIndex(const Id& id) const               = 0;
     [[nodiscard]] virtual FyWidget* widgetAtId(const Id& id) const          = 0;
     [[nodiscard]] virtual FyWidget* widgetAtIndex(int index) const          = 0;
-    [[nodiscard]] virtual int widgetCount() const                           = 0;
+    [[nodiscard]] virtual FyWidget* widgetAtPosition(const QPoint& pos) const;
+    [[nodiscard]] virtual QRect widgetGeometry(FyWidget* widget) const;
+    [[nodiscard]] virtual int widgetCount() const = 0;
     [[nodiscard]] virtual int fullWidgetCount() const;
     [[nodiscard]] virtual WidgetList widgets() const = 0;
 
@@ -60,6 +64,8 @@ public:
 
     [[nodiscard]] virtual QByteArray saveState() const;
     virtual bool restoreState(const QByteArray& state);
+
+    void saveCopyLayoutData(QJsonObject& layout, LayoutCopyContext& context, bool isRoot) override;
 
     /*!
      * Convenience method to load all widgets in the @p widgets array.

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -234,6 +234,7 @@ void QueueViewer::setupConnections()
     QObject::connect(m_playerController, &PlayerController::tracksQueued, this, &QueueViewer::resetModel);
     QObject::connect(m_playerController, &PlayerController::tracksDequeued, this, &QueueViewer::resetModel);
     QObject::connect(m_playerController, &PlayerController::currentTrackChanged, this, &QueueViewer::resetModel);
+    QObject::connect(m_playerController, &PlayerController::currentTrackUpdated, this, &QueueViewer::resetModel);
     QObject::connect(m_playerController, &PlayerController::playStateChanged, m_model,
                      &QueueViewerModel::playbackStateChanged);
     QObject::connect(m_model, &QAbstractItemModel::rowsInserted, this, &QueueViewer::handleRowsChanged);

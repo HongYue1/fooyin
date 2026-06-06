@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -357,6 +357,21 @@ void FilterWidget::saveLayoutData(QJsonObject& layout)
     layout["Group"_L1] = m_group.name();
     layout["Index"_L1] = m_index;
     layout["State"_L1] = QString::fromUtf8(state.toBase64());
+}
+
+void FilterWidget::saveCopyLayoutData(QJsonObject& layout, LayoutCopyContext& context, bool isRoot)
+{
+    FyWidget::saveCopyLayoutData(layout, context, isRoot);
+
+    if(isRoot) {
+        layout["Index"_L1] = -1;
+        return;
+    }
+
+    const QString group = layout.value("Group"_L1).toString();
+    if(!group.isEmpty()) {
+        layout["Group"_L1] = context.mappedString(u"Fooyin.Filters.FilterGroup"_s, group);
+    }
 }
 
 void FilterWidget::loadLayoutData(const QJsonObject& layout)

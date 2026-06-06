@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,8 +65,7 @@ Scrobbler::Scrobbler(PlayerController* playerController, std::shared_ptr<Network
 
     QObject::connect(m_playerController, &PlayerController::currentTrackChanged, this, &Scrobbler::currentTrackChanged);
     QObject::connect(m_playerController, &PlayerController::positionChanged, this, &Scrobbler::updateScrobbleThreshold);
-    QObject::connect(m_playerController, &PlayerController::playStateChanged, this,
-                     [this]() { updateNowPlayingTimer(); });
+    QObject::connect(m_playerController, &PlayerController::playStateChanged, this, &Scrobbler::handlePlayStateChanged);
 }
 
 Scrobbler::~Scrobbler()
@@ -97,6 +96,20 @@ void Scrobbler::currentTrackChanged(const Track& track)
     updateNowPlaying(track);
 }
 
+void Scrobbler::handlePlayStateChanged(Player::PlayState state, Player::PlayState previous)
+{
+    if(previous == Player::PlayState::Stopped && state == Player::PlayState::Playing) {
+        m_scrobbledCurrentTrack = false;
+
+        const Track track = m_playerController->currentTrack();
+        for(auto& service : m_services) {
+            service->restartScrobbleSession(track);
+        }
+    }
+
+    updateNowPlayingTimer();
+}
+
 void Scrobbler::scrobble(const Track& track)
 {
     for(auto& service : m_services) {
@@ -109,7 +122,7 @@ void Scrobbler::scrobble(const Track& track)
 bool Scrobbler::currentTrackReachedScrobbleThreshold() const
 {
     const Track track = m_playerController->currentTrack();
-    if(!track.isValid() || !track.hasArtists() || track.title().isEmpty()
+    if(!track.isValid() || track.isRemote() || !track.hasArtists() || track.title().isEmpty()
        || track.duration() < MinScrobbleTrackDurationMs) {
         return false;
     }

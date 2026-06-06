@@ -17,6 +17,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/include/gui/guisettings.h
     ${CMAKE_SOURCE_DIR}/include/gui/guiutils.h
     ${CMAKE_SOURCE_DIR}/include/gui/layoutprovider.h
+    ${CMAKE_SOURCE_DIR}/include/gui/playlist/currentplaylistcontroller.h
     ${CMAKE_SOURCE_DIR}/include/gui/plugins/dspguiplugin.h
     ${CMAKE_SOURCE_DIR}/include/gui/plugins/guiplugin.h
     ${CMAKE_SOURCE_DIR}/include/gui/plugins/guiplugincontext.h
@@ -53,6 +54,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/expandingcombobox.h
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/extendabletableview.h
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/fontbutton.h
+    ${CMAKE_SOURCE_DIR}/include/gui/widgets/gradienteditor.h
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/lineediteditor.h
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/metadatacompleter.h
     ${CMAKE_SOURCE_DIR}/include/gui/widgets/multilinedelegate.h
@@ -153,6 +155,7 @@ set(SOURCES
     dsp/skipsilencesettingswidget.cpp
     dsp/skipsilencesettingswidget.h
     editablelayout.cpp
+    editablelayout_p.h
     fylayout.cpp
     fywidget.cpp
     guiapplication.cpp
@@ -372,8 +375,12 @@ set(SOURCES
     settings/guitrackdisplaypage.h
     settings/guigeneralpage.cpp
     settings/guigeneralpage.h
+    settings/guilayoutpage.cpp
+    settings/guilayoutpage.h
     settings/guithemespage.cpp
     settings/guithemespage.h
+    settings/layouttreemodel.cpp
+    settings/layouttreemodel.h
     settings/library/librarygeneralpage.cpp
     settings/library/librarygeneralpage.h
     settings/library/librarymetadatapage.cpp
@@ -486,6 +493,7 @@ set(SOURCES
     widgets/expandingcombobox.cpp
     widgets/extendabletableview.cpp
     widgets/fontbutton.cpp
+    widgets/gradienteditor.cpp
     widgets/hovermenu.cpp
     widgets/hovermenu.h
     widgets/lineediteditor.cpp

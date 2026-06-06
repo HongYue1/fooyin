@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,6 +88,15 @@ void ArchiveDecoder::seek(uint64_t pos)
     if(m_loadedDecoder.decoder) {
         m_loadedDecoder.decoder->seek(pos);
     }
+}
+
+AudioDecoder::ReadResult ArchiveDecoder::readAudio(size_t bytes)
+{
+    if(!m_loadedDecoder.decoder) {
+        return ReadResult::errorResult();
+    }
+
+    return m_loadedDecoder.decoder->readAudio(bytes);
 }
 
 AudioBuffer ArchiveDecoder::readBuffer(size_t bytes)

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 
 #include <gui/widgetcontainer.h>
 #include <gui/widgets/editabletabwidget.h>
+
+#include <QPoint>
+#include <QRect>
 
 namespace Fooyin {
 class SettingsManager;
@@ -45,6 +48,8 @@ public:
     [[nodiscard]] int widgetIndex(const Id& id) const override;
     [[nodiscard]] FyWidget* widgetAtId(const Id& id) const override;
     [[nodiscard]] FyWidget* widgetAtIndex(int index) const override;
+    [[nodiscard]] FyWidget* widgetAtPosition(const QPoint& pos) const override;
+    [[nodiscard]] QRect widgetGeometry(FyWidget* widget) const override;
     [[nodiscard]] int widgetCount() const override;
     [[nodiscard]] WidgetList widgets() const override;
 

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -587,6 +587,10 @@ QString ScriptRegistry::playbackTimeRemaining() const
         return {};
     }
     if(const auto* environment = playbackEnvironment(m_context); environment != nullptr) {
+        if(environment->currentTrackDuration() == 0
+           || environment->currentPosition() >= environment->currentTrackDuration()) {
+            return {};
+        }
         return Utils::msToString(environment->currentTrackDuration() - environment->currentPosition());
     }
     return {};
@@ -598,6 +602,10 @@ QString ScriptRegistry::playbackTimeRemainingSeconds() const
         return {};
     }
     if(const auto* environment = playbackEnvironment(m_context); environment != nullptr) {
+        if(environment->currentTrackDuration() == 0
+           || environment->currentPosition() >= environment->currentTrackDuration()) {
+            return {};
+        }
         return QString::number((environment->currentTrackDuration() - environment->currentPosition()) / 1000);
     }
     return {};
@@ -686,6 +694,7 @@ void ScriptRegistry::addDefaultFunctions()
     registerFunction(u"strstrlast"_s, makeScriptFunctionInvoker<Scripting::strstrLast>());
     registerFunction(u"stristrlast"_s, makeScriptFunctionInvoker<Scripting::stristrLast>());
     registerFunction(u"split"_s, makeScriptFunctionInvoker<Scripting::split>());
+    registerFunction(u"join"_s, makeScriptFunctionInvoker<Scripting::join>());
     registerFunction(u"len"_s, makeScriptFunctionInvoker<Scripting::len>());
     registerFunction(u"longest"_s, makeScriptFunctionInvoker<Scripting::longest>());
     registerFunction(u"strcmp"_s, makeScriptFunctionInvoker<Scripting::strcmp>());

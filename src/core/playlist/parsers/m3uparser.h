@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ public:
     [[nodiscard]] QString name() const override;
     [[nodiscard]] QStringList supportedExtensions() const override;
     [[nodiscard]] bool saveIsSupported() const override;
+    [[nodiscard]] bool canParse(const QByteArray& data, const QString& contentType, const QUrl& url) const override;
     [[nodiscard]] size_t countEntries(QIODevice* device, const QString& filepath, const QDir& dir) const override;
 
     TrackList readPlaylist(QIODevice* device, const QString& filepath, const QDir& dir,

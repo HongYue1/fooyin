@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,36 @@
 
 #include <utils/id.h>
 
-#include <QPointer>
 #include <QWidget>
+
+#include <memory>
+#include <unordered_map>
 
 class QAction;
 class QDialog;
 class QMenu;
 
 namespace Fooyin {
+class FyWidgetPrivate;
+
+class FYGUI_EXPORT LayoutCopyContext
+{
+public:
+    /*!
+     * Returns a copy-local replacement for @p value within @p scope.
+     *
+     * The first request for a scope/value pair creates a fresh stable value for
+     * this copy operation; later requests for the same pair return the same
+     * replacement. Widgets can use this to preserve relationships between copied
+     * descendants while avoiding shared cross-instance state with the original
+     * widgets.
+     */
+    [[nodiscard]] QString mappedString(const QString& scope, const QString& value);
+
+private:
+    std::unordered_map<QString, QString> m_stringMappings;
+};
+
 enum class EmptySearchMode : uint8_t
 {
     Clear = 0,
@@ -90,6 +112,7 @@ public:
     Q_DECLARE_FLAGS(Features, Feature)
 
     explicit FyWidget(QWidget* parent);
+    ~FyWidget() override;
 
     [[nodiscard]] Id id() const;
     /*!
@@ -126,6 +149,13 @@ public:
      */
     void saveBaseLayout(QJsonArray& layout);
     /*!
+     * Serialises this widget for layout copy/paste.
+     *
+     * This omits persisted ids and gives widgets a chance to rewrite
+     * cross-instance state through @fn saveCopyLayoutData().
+     */
+    void saveCopyLayout(QJsonArray& layout, LayoutCopyContext& context, bool isRoot = true);
+    /*!
      * Restores this widget from saved layout data.
      *
      * Replaces the widget id if one was saved and then calls @fn loadLayoutData()
@@ -154,6 +184,13 @@ public:
      * @note the base class implementation of this function does nothing.
      */
     virtual void saveLayoutData(QJsonObject& layout);
+    /*!
+     * Called by @fn saveCopyLayout().
+     *
+     * The base implementation writes normal widget data through @fn saveLayoutData()
+     * and removes any persisted widget id.
+     */
+    virtual void saveCopyLayoutData(QJsonObject& layout, LayoutCopyContext& context, bool isRoot);
     /*!
      * Called by @fn loadLayout().
      * Reimplement to restore widget-specific data previously written by
@@ -196,9 +233,7 @@ Q_SIGNALS:
     void changeSearch(const QString& search);
 
 private:
-    Id m_id;
-    Features m_features;
-    QPointer<QDialog> m_configDialog;
+    std::unique_ptr<FyWidgetPrivate> p;
 };
 using WidgetList = std::vector<FyWidget*>;
 } // namespace Fooyin

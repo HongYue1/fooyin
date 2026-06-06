@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,6 +72,15 @@ void ToolButton::paintEvent(QPaintEvent* /*event*/)
     QStylePainter painter{this};
     QStyleOptionToolButton opt;
     initStyleOption(&opt);
+
+    const bool checked = opt.state & QStyle::State_On;
+    if(autoRaise() && checked) {
+        opt.state &= ~QStyle::State_On;
+
+        const QColor activeColour = opt.palette.color(QPalette::Active, QPalette::Highlight);
+        opt.palette.setColor(QPalette::ButtonText, activeColour);
+        opt.palette.setColor(QPalette::WindowText, activeColour);
+    }
 
     if(m_menuIndicatorHidden) {
         opt.features &= ~QStyleOptionToolButton::HasMenu;

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,6 +128,7 @@ public:
 
         bool isActive{false};
         uint64_t revision{0};
+        uint64_t searchRevision{0};
     };
 
     struct FilterGroupState
@@ -161,6 +162,7 @@ public:
     void updateAllPlaylistActions();
     void updateWidgetSelection(FilterStageState& stage) const;
     static const FilterRowList& rowsForSelection(const FilterStageState& stage);
+    static void markStagesCurrent(FilterGroupState& group, int lastStageIndex);
     void handleSelectionChanged(FilterWidget* filter, const std::vector<RowKey>& keys);
     void handleSearchChanged(FilterWidget* filter, const QString& search);
 
@@ -453,6 +455,18 @@ const FilterRowList& FilterControllerPrivate::rowsForSelection(const FilterStage
     return stage.searchedRows ? *stage.searchedRows : stage.rows;
 }
 
+void FilterControllerPrivate::markStagesCurrent(FilterGroupState& group, int lastStageIndex)
+{
+    if(lastStageIndex < 0) {
+        return;
+    }
+
+    const int stageCount = std::min(lastStageIndex + 1, static_cast<int>(group.stages.size()));
+    for(auto& state : group.stages | std::views::take(stageCount)) {
+        state.revision = group.revision;
+    }
+}
+
 void FilterControllerPrivate::handleSelectionChanged(FilterWidget* filter, const std::vector<RowKey>& keys)
 {
     const auto location = widgetLocation(filter);
@@ -492,7 +506,7 @@ void FilterControllerPrivate::handleSelectionChanged(FilterWidget* filter, const
     publishStage(group->id, stageIndex);
 
     ++group->revision;
-    stage->revision = group->revision;
+    markStagesCurrent(*group, stageIndex);
 
     const TrackList nextTracks = stage->isActive ? stage->selectedTracks : stage->inputTracks;
     const bool nextConstrained = hasPriorActive || stage->isActive;
@@ -510,6 +524,24 @@ void FilterControllerPrivate::handleSearchChanged(FilterWidget* filter, const QS
     }
 
     if(std::exchange(stage->searchText, search) == search) {
+        return;
+    }
+
+    if(!stage->selectedKeys.empty()) {
+        stage->selectedKeys.clear();
+        stage->selectedTracks.clear();
+        stage->isActive = false;
+        updateWidgetSelection(*stage);
+
+        ++group->revision;
+        markStagesCurrent(*group, location->stageIndex);
+
+        publishStage(group->id, location->stageIndex);
+        scheduleRecompute(group->id);
+        return;
+    }
+
+    if(group->recomputePending) {
         return;
     }
 
@@ -572,7 +604,6 @@ void FilterControllerPrivate::sortGroupedFilters(FilterGroupState& group)
     std::ranges::stable_sort(group.filters, [](const FilterWidget* left, const FilterWidget* right) {
         return left->index() < right->index();
     });
-    recalculateIndexesOfGroup(group.id);
 }
 
 void FilterControllerPrivate::scheduleRecompute(const Id& groupId)
@@ -713,7 +744,6 @@ void FilterControllerPrivate::recomputeStage(const Id& groupId, int stageIndex, 
 
     stage.inputTracks = currentTracks;
     stage.selectedTracks.clear();
-    stage.rows.clear();
     stage.searchedRows.reset();
     stage.isActive = false;
     stage.revision = revision;
@@ -775,6 +805,7 @@ void FilterControllerPrivate::refreshStageSearch(const Id& groupId, int stageInd
 
     auto& stage = group.stages.at(stageIndex);
     stage.searchedRows.reset();
+    const uint64_t searchRevision = ++stage.searchRevision;
 
     if(stage.searchText.isEmpty()) {
         publishStage(groupId, stageIndex);
@@ -785,41 +816,45 @@ void FilterControllerPrivate::refreshStageSearch(const Id& groupId, int stageInd
 
     Utils::asyncExec([rows = stage.rows, tracks = stage.inputTracks, searchText]() {
         return filterRowsBySearch(searchText, rows, tracks);
-    }).then(m_self, [this, groupId, stageIndex, revision, searchText](const FilterRowList& searchedRows) {
-        if(!m_groups.contains(groupId)) {
-            return;
-        }
+    })
+        .then(m_self,
+              [this, groupId, stageIndex, revision, searchRevision, searchText](const FilterRowList& searchedRows) {
+                  if(!m_groups.contains(groupId)) {
+                      return;
+                  }
 
-        auto& currentGroup = m_groups.at(groupId);
-        if(currentGroup.revision != revision || stageIndex < 0
-           || std::cmp_greater_equal(stageIndex, currentGroup.stages.size())) {
-            return;
-        }
+                  auto& currentGroup = m_groups.at(groupId);
+                  if(currentGroup.revision != revision || stageIndex < 0
+                     || std::cmp_greater_equal(stageIndex, currentGroup.stages.size())) {
+                      return;
+                  }
 
-        auto& currentStage = currentGroup.stages.at(stageIndex);
-        if(currentStage.revision != revision || currentStage.searchText != searchText) {
-            return;
-        }
+                  auto& currentStage = currentGroup.stages.at(stageIndex);
+                  if(currentStage.revision != revision || currentStage.searchRevision != searchRevision
+                     || currentStage.searchText != searchText) {
+                      return;
+                  }
 
-        currentStage.searchedRows = searchedRows;
+                  currentStage.searchedRows = searchedRows;
 
-        if(containsSummaryKey(currentStage.selectedKeys)) {
-            const FilterSelectionResolution selection = resolveFilterSelection(
-                *currentStage.searchedRows, currentStage.inputTracks, currentStage.selectedKeys);
-            currentStage.selectedKeys   = selection.selectedKeys;
-            currentStage.selectedTracks = selection.selectedTracks;
-            currentStage.isActive       = selection.isActive;
+                  if(containsSummaryKey(currentStage.selectedKeys)) {
+                      const FilterSelectionResolution selection = resolveFilterSelection(
+                          *currentStage.searchedRows, currentStage.inputTracks, currentStage.selectedKeys);
+                      currentStage.selectedKeys   = selection.selectedKeys;
+                      currentStage.selectedTracks = selection.selectedTracks;
+                      currentStage.isActive       = selection.isActive;
 
-            const bool hasPriorActive
-                = std::ranges::any_of(currentGroup.stages | std::views::take(stageIndex), &FilterStageState::isActive);
-            const TrackList nextTracks = currentStage.isActive ? currentStage.selectedTracks : currentStage.inputTracks;
-            const bool nextConstrained = hasPriorActive || currentStage.isActive;
+                      const bool hasPriorActive = std::ranges::any_of(
+                          currentGroup.stages | std::views::take(stageIndex), &FilterStageState::isActive);
+                      const TrackList nextTracks
+                          = currentStage.isActive ? currentStage.selectedTracks : currentStage.inputTracks;
+                      const bool nextConstrained = hasPriorActive || currentStage.isActive;
 
-            recomputeStage(groupId, stageIndex + 1, revision, nextTracks, nextConstrained);
-        }
+                      recomputeStage(groupId, stageIndex + 1, revision, nextTracks, nextConstrained);
+                  }
 
-        publishStage(groupId, stageIndex);
-    });
+                  publishStage(groupId, stageIndex);
+              });
 }
 
 void FilterControllerPrivate::publishStage(const Id& groupId, int stageIndex)
@@ -856,6 +891,9 @@ void FilterControllerPrivate::handleFilterUpdated(FilterWidget* widget)
     if(oldGroupId && oldGroupId.value() == newGroupId) {
         if(m_groups.contains(newGroupId)) {
             auto& group = m_groups.at(newGroupId);
+            if(newPublicGroup.isValid() && widget->index() < 0) {
+                widget->setIndex(static_cast<int>(group.filters.size()) - 1);
+            }
             syncStages(group);
             scheduleRecompute(newGroupId);
         }
@@ -888,7 +926,7 @@ void FilterControllerPrivate::attachWidget(FilterWidget* widget, const Id& publi
         m_ungrouped.emplace(widget);
     }
 
-    if(publicGroupId.isValid() && (widget->index() < 0 || widget->index() > static_cast<int>(group.filters.size()))) {
+    if(publicGroupId.isValid() && widget->index() < 0) {
         widget->setIndex(static_cast<int>(group.filters.size()));
     }
 

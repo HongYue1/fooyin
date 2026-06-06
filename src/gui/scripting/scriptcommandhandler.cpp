@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2026, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2026, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -271,6 +271,10 @@ const ScriptCommandAliasList& ScriptCommandHandler::scriptCommandAliases()
          .actionId    = Constants::Actions::AddFolders,
          .category    = "Playlist",
          .description = "Add folders to the playlist"},
+        {.alias       = u"addstream",
+         .actionId    = Constants::Actions::AddStreamUrl,
+         .category    = "Playlist",
+         .description = "Add a stream URL to the playlist"},
         {.alias       = u"newplaylist",
          .actionId    = Constants::Actions::NewPlaylist,
          .category    = "Playlist",

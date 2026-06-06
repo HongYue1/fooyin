@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #pragma once
 
 #include <core/player/playerdefs.h>
+#include <core/track.h>
 #include <gui/widgetcontainer.h>
 
 #include <QBasicTimer>
@@ -62,6 +63,8 @@ public:
     [[nodiscard]] int widgetIndex(const Id& id) const override;
     [[nodiscard]] FyWidget* widgetAtId(const Id& id) const override;
     [[nodiscard]] FyWidget* widgetAtIndex(int index) const override;
+    [[nodiscard]] FyWidget* widgetAtPosition(const QPoint& pos) const override;
+    [[nodiscard]] QRect widgetGeometry(FyWidget* widget) const override;
     [[nodiscard]] int widgetCount() const override;
     [[nodiscard]] WidgetList widgets() const override;
 
@@ -74,6 +77,7 @@ public:
 Q_SIGNALS:
     void filesDropped(const QList<QUrl>& urls, const Fooyin::UId& playlistId);
     void tracksDropped(const QByteArray& data, const Fooyin::UId& playlistId);
+    void trackListDropped(const Fooyin::TrackList& tracks, const Fooyin::UId& playlistId);
     void savePlaylistRequested(const Fooyin::UId& playlistId);
 
 protected:

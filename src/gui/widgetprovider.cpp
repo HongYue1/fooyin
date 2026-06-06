@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -198,6 +198,14 @@ void WidgetProvider::setIsVisibleWhen(const QString& key, std::function<bool()> 
 bool WidgetProvider::widgetExists(const QString& key) const
 {
     return p->m_widgets.contains(key);
+}
+
+QString WidgetProvider::displayName(const QString& key) const
+{
+    if(!p->m_widgets.contains(key)) {
+        return key;
+    }
+    return p->m_widgets.at(key).name;
 }
 
 bool WidgetProvider::canCreateWidget(const QString& key) const

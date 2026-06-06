@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,6 +62,8 @@ PlaybackMenu::PlaybackMenu(ActionManager* actionManager, PlayerController* playe
     Gui::setThemeIcon(m_stop, Constants::Icons::Stop);
     Gui::setThemeIcon(m_previous, Constants::Icons::Prev);
     Gui::setThemeIcon(m_next, Constants::Icons::Next);
+    Gui::setThemeIcon(m_randomTrack, Constants::Icons::RandomPlay);
+    Gui::setThemeIcon(m_randomAlbum, Constants::Icons::RandomPlay);
 
     auto* playbackMenu = m_actionManager->actionContainer(Constants::Menus::Playback);
 

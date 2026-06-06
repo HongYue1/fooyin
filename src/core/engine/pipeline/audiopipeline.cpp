@@ -180,6 +180,7 @@ AudioPipeline::AudioPipeline()
     , m_playbackState{PipelinePlaybackState::Stopped}
     , m_playing{false}
     , m_pauseDrainActive{false}
+    , m_bufferingPaused{false}
     , m_renderPhase{RenderPhase::Stopped}
     , m_outputBitdepth{SampleFormat::Unknown}
     , m_ditherEnabled{false}
@@ -651,6 +652,7 @@ void AudioPipeline::play()
         const auto previousState = pipeline.m_playbackState.load(std::memory_order_acquire);
         pipeline.m_playing.store(true, std::memory_order_release);
         pipeline.m_pauseDrainActive.store(false, std::memory_order_release);
+        pipeline.m_bufferingPaused.store(false, std::memory_order_release);
         pipeline.m_playbackState.store(PipelinePlaybackState::Playing, std::memory_order_release);
         pipeline.m_renderPhase = RenderPhase::Preroll;
 
@@ -671,6 +673,7 @@ void AudioPipeline::beginPauseDrain()
     enqueueAsync([](AudioPipeline& pipeline) {
         pipeline.m_playing.store(false, std::memory_order_release);
         pipeline.m_pauseDrainActive.store(true, std::memory_order_release);
+        pipeline.m_bufferingPaused.store(false, std::memory_order_release);
         pipeline.m_playbackState.store(PipelinePlaybackState::Paused, std::memory_order_release);
         pipeline.m_renderPhase = RenderPhase::Stopped;
         pipeline.m_renderer.pauseAll();
@@ -682,6 +685,7 @@ void AudioPipeline::pause()
     enqueueAsync([](AudioPipeline& pipeline) {
         pipeline.m_playing.store(false, std::memory_order_release);
         pipeline.m_pauseDrainActive.store(false, std::memory_order_release);
+        pipeline.m_bufferingPaused.store(false, std::memory_order_release);
         pipeline.m_playbackState.store(PipelinePlaybackState::Paused, std::memory_order_release);
         pipeline.m_renderPhase = RenderPhase::Stopped;
 
@@ -693,11 +697,41 @@ void AudioPipeline::pause()
     });
 }
 
+void AudioPipeline::setBufferingPaused(bool paused)
+{
+    enqueueAsync([paused](AudioPipeline& pipeline) {
+        if(pipeline.m_bufferingPaused.load(std::memory_order_acquire) == paused) {
+            return;
+        }
+
+        pipeline.m_bufferingPaused.store(paused, std::memory_order_release);
+
+        if(paused) {
+            pipeline.m_renderPhase = RenderPhase::Stopped;
+            pipeline.m_renderer.pauseAll();
+            if(pipeline.m_outputUnit.output() && pipeline.m_outputUnit.output()->initialised()) {
+                pipeline.m_outputUnit.output()->setPaused(true);
+            }
+            pipeline.clearUnderrunWarningLatches();
+            return;
+        }
+
+        if(pipeline.m_playing.load(std::memory_order_acquire)) {
+            pipeline.m_renderPhase = RenderPhase::Preroll;
+            pipeline.m_renderer.resumeAll();
+            if(pipeline.m_outputUnit.output() && pipeline.m_outputUnit.output()->initialised()) {
+                pipeline.m_outputUnit.output()->setPaused(false);
+            }
+        }
+    });
+}
+
 void AudioPipeline::stopPlayback()
 {
     enqueueAsync([](AudioPipeline& pipeline) {
         pipeline.m_playing.store(false, std::memory_order_release);
         pipeline.m_pauseDrainActive.store(false, std::memory_order_release);
+        pipeline.m_bufferingPaused.store(false, std::memory_order_release);
         pipeline.m_playbackState.store(PipelinePlaybackState::Stopped, std::memory_order_release);
         pipeline.m_renderPhase = RenderPhase::Stopped;
 
@@ -1467,6 +1501,18 @@ void AudioPipeline::processAudio()
         return;
     }
 
+    if(m_bufferingPaused.load(std::memory_order_acquire)) {
+        const auto outputStateWithWrites = stateWithWrites(state, framesWrittenThisCycle);
+        updatePlaybackDelay(outputStateWithWrites, PositionBasis::DecodeHead);
+        notifyDataDemand(true);
+        clearUnderrunWarningLatches();
+        m_pendingWriteStallLogActive = false;
+
+        const auto waitDuration = m_outputUnit.writeBackoff(m_renderer.outputFormat(), outputStateWithWrites);
+        m_threadHost.waitFor(waitDuration);
+        return;
+    }
+
     if(handleNoFreeFrames(state, freeFrames, framesWrittenThisCycle)) {
         clearUnderrunWarningLatches();
         m_pendingWriteStallLogActive = false;
@@ -1754,16 +1800,31 @@ bool AudioPipeline::drainPendingOutput(const OutputState& state, int& freeFrames
         const auto startOffsetInfo
             = sourceTimelineOffsetInfoForFrameOffset(pendingTimeline, pendingStartOffset, masterScale,
                                                      m_outputUnit.pendingStreamId(), m_outputUnit.pendingEpoch());
-        const auto segmentEndMs = sourceTimelinePositionForFrameOffset(pendingTimeline, pendingEndOffset, masterScale);
+        const auto endOffsetInfo
+            = sourceTimelineOffsetInfoForFrameOffset(pendingTimeline, pendingEndOffset, masterScale,
+                                                     m_outputUnit.pendingStreamId(), m_outputUnit.pendingEpoch());
 
-        if(startOffsetInfo && segmentEndMs) {
-            m_timelineUnit.setCycleMappedPosition(*segmentEndMs);
+        if(startOffsetInfo && endOffsetInfo) {
+            const bool sameRenderedStream = startOffsetInfo->streamId == endOffsetInfo->streamId
+                                         && startOffsetInfo->epoch == endOffsetInfo->epoch;
+            if(!sameRenderedStream) {
+                qCDebug(PIPELINE) << "Pending output write crossed timeline stream boundary:"
+                                  << "startStreamId=" << startOffsetInfo->streamId
+                                  << "startEpoch=" << startOffsetInfo->epoch
+                                  << "startPosMs=" << startOffsetInfo->positionMs
+                                  << "endStreamId=" << endOffsetInfo->streamId << "endEpoch=" << endOffsetInfo->epoch
+                                  << "endPosMs=" << endOffsetInfo->positionMs
+                                  << "pendingStartOffset=" << pendingStartOffset
+                                  << "pendingEndOffset=" << pendingEndOffset << "writtenFrames=" << pendingWritten;
+            }
+
+            m_timelineUnit.setCycleMappedPosition(endOffsetInfo->positionMs);
             m_timelineUnit.setCycleRenderedSegment({
                 .valid        = true,
-                .streamId     = startOffsetInfo->streamId,
-                .epoch        = startOffsetInfo->epoch,
-                .startMs      = startOffsetInfo->positionMs,
-                .endMs        = *segmentEndMs,
+                .streamId     = endOffsetInfo->streamId,
+                .epoch        = endOffsetInfo->epoch,
+                .startMs      = sameRenderedStream ? startOffsetInfo->positionMs : endOffsetInfo->positionMs,
+                .endMs        = endOffsetInfo->positionMs,
                 .outputFrames = pendingWritten,
             });
 
@@ -2244,6 +2305,10 @@ void AudioPipeline::updatePlaybackState(const OutputState& state, int framesWrit
         primaryPosMs = primary->positionMs();
     }
 
+    const StreamId audibleOutputStreamId = m_timelineUnit.audibleOutputStreamId();
+    const bool cycleMapsAudibleStream    = cycleSegment.valid && cycleSegment.streamId != InvalidStreamId
+                                        && cycleSegment.streamId == audibleOutputStreamId;
+
     if(acceptCycleMapped && m_timelineUnit.positionIsMapped()) {
         const uint64_t currentPos = m_timelineUnit.positionMs();
 
@@ -2255,7 +2320,7 @@ void AudioPipeline::updatePlaybackState(const OutputState& state, int framesWrit
                 allowBackwardJump        = streamPos + MaxMappedPositionRegressionMs < currentPos;
             }
 
-            if(!allowBackwardJump) {
+            if(!allowBackwardJump && !cycleMapsAudibleStream) {
                 acceptCycleMapped = false;
             }
         }
@@ -2266,7 +2331,7 @@ void AudioPipeline::updatePlaybackState(const OutputState& state, int framesWrit
         const bool streamMismatch = cycleSegment.streamId != InvalidStreamId && primaryId != InvalidStreamId
                                  && cycleSegment.streamId != primaryId;
 
-        if(epochMismatch || streamMismatch) {
+        if(epochMismatch || (streamMismatch && !cycleMapsAudibleStream)) {
             acceptCycleMapped = false;
         }
     }

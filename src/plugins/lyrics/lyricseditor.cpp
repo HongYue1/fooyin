@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,8 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSignalBlocker>
-#include <QTextBlock>
 #include <QTextEdit>
+#include <QTextFormat>
 
 using namespace Qt::StringLiterals;
 
@@ -57,10 +57,14 @@ void LyricsEditor::setTrack(const Track& track)
 
 void LyricsEditor::setLyrics(const Lyrics& lyrics)
 {
+    const bool textChanged = m_lyricsText->toPlainText() != lyrics.data;
+
     m_lyrics = lyrics;
 
-    const QSignalBlocker blocker{m_lyricsText};
-    m_lyricsText->setPlainText(m_lyrics.data);
+    if(textChanged) {
+        const QSignalBlocker blocker{m_lyricsText};
+        m_lyricsText->setPlainText(m_lyrics.data);
+    }
 }
 
 void LyricsEditor::setControlsEnabled(bool enabled)
@@ -213,19 +217,13 @@ void LyricsEditor::updateButtons()
 
 void LyricsEditor::highlightCurrentLine()
 {
-    QTextBlock block = m_lyricsText->document()->firstBlock();
-    while(block.isValid()) {
-        QTextCursor tempCursor{block};
-        QTextBlockFormat format;
-        format.setBackground(Qt::NoBrush);
-        tempCursor.setBlockFormat(format);
-        block = block.next();
-    }
+    QTextEdit::ExtraSelection selection;
+    selection.format.setBackground(m_currentLineColour);
+    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+    selection.cursor = m_lyricsText->textCursor();
+    selection.cursor.clearSelection();
 
-    QTextCursor currentCursor{m_lyricsText->textCursor().block()};
-    QTextBlockFormat currentBlockFormat;
-    currentBlockFormat.setBackground(m_currentLineColour);
-    currentCursor.setBlockFormat(currentBlockFormat);
+    m_lyricsText->setExtraSelections({selection});
 }
 
 void LyricsEditor::insertOrUpdateTimestamp()

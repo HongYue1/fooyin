@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -329,6 +329,22 @@ QString split(const QStringList& vec)
     }
 
     return parts.at(index - 1);
+}
+
+QString join(const QStringList& vec)
+{
+    if(vec.size() < 2) {
+        return {};
+    }
+
+    QStringList parts;
+    for(auto it = vec.cbegin() + 1; it != vec.cend(); ++it) {
+        if(!it->isEmpty()) {
+            parts.emplace_back(*it);
+        }
+    }
+
+    return parts.join(vec.front());
 }
 
 QString len(const QStringList& vec)

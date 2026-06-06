@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@
 #include "dsp/skipsilencesettingswidget.h"
 #include "gui/editablelayout.h"
 #include "gui/plugins/guiplugincontext.h"
-#include "gui/windowcontroller.h"
 #include "guiapplication.h"
 #include "internalguisettings.h"
 #include "librarytree/librarytreecontroller.h"
@@ -67,6 +66,7 @@
 #include "settings/generalpage.h"
 #include "settings/guidisplaypage.h"
 #include "settings/guigeneralpage.h"
+#include "settings/guilayoutpage.h"
 #include "settings/guithemespage.h"
 #include "settings/guitrackdisplaypage.h"
 #include "settings/library/librarygeneralpage.h"
@@ -105,6 +105,7 @@
 #include <core/library/musiclibrary.h>
 #include <core/player/playercontroller.h>
 #include <core/playlist/playlisthandler.h>
+#include <core/playlist/playlistloader.h>
 #include <gui/coverprovider.h>
 #include <gui/coverrepository.h>
 #include <gui/guiconstants.h>
@@ -189,6 +190,8 @@ void Widgets::registerWidgets()
                              &PlaylistInteractor::filesToPlaylist);
             QObject::connect(playlistTabs, &PlaylistTabs::tracksDropped, m_playlistInteractor,
                              &PlaylistInteractor::trackIdsToPlaylist);
+            QObject::connect(playlistTabs, &PlaylistTabs::trackListDropped, m_playlistInteractor,
+                             &PlaylistInteractor::tracksToPlaylist);
             QObject::connect(playlistTabs, &PlaylistTabs::savePlaylistRequested, m_gui, &GuiApplication::savePlaylist);
             return playlistTabs;
         },
@@ -300,8 +303,9 @@ void Widgets::registerWidgets()
     provider->registerWidget(
         u"StatusBar"_s,
         [this]() {
-            auto* statusWidget = new StatusWidget(m_core->playerController(), m_core->playlistHandler(),
-                                                  m_playlistController, m_gui->trackSelection(), m_settings, m_window);
+            auto* statusWidget
+                = new StatusWidget(m_core->engine(), m_core->playerController(), m_core->playlistHandler(),
+                                   m_playlistController, m_gui->trackSelection(), m_settings, m_window);
             m_window->installStatusWidget(statusWidget);
             return statusWidget;
         },
@@ -333,6 +337,7 @@ void Widgets::registerPages()
     new GuiGeneralPage(m_gui->layoutProvider(), m_gui->editableLayout(), m_settings, this);
     new GuiDisplayPage(m_settings, this);
     new GuiTrackDisplayPage(m_settings, this);
+    new GuiLayoutPage(m_gui->layoutProvider(), m_gui->editableLayout(), m_gui->widgetProvider(), m_settings, this);
     new GuiThemesPage(m_gui->themeRegistry(), m_settings, this);
     new TrackContextMenuPage(m_gui->trackSelection(), m_settings, this);
 
@@ -421,16 +426,21 @@ void Widgets::registerAdvancedSettings()
         {.category    = {tr("Interface"), GuiApplication::tr("Display")},
          .label       = tr("Image allocation limit"),
          .description = tr("Maximum image allocation size in MB. Set to 0 to disable the limit."),
-         .editor      = AdvancedSettingSpinBox{.minimum = 0, .maximum = 1024, .singleStep = 1, .suffix = u" MB"_s},
+         .editor      = AdvancedSettingSpinBox{.minimum          = 0,
+                                               .maximum          = 1024,
+                                               .singleStep       = 1,
+                                               .suffix           = u" MB"_s,
+                                               .specialValueText = {}},
          .normalise   = {},
          .validate    = {}});
     advancedSettingsRegistry->add<Settings::Gui::Internal::EditingMenuLevels>(
         {.category    = {tr("Interface"), tr("Layout Editing")},
          .label       = tr("Menu levels"),
          .description = tr("Number of widget levels shown in the layout editing context menu."),
-         .editor      = AdvancedSettingSpinBox{.minimum = 1, .maximum = 4, .singleStep = 1, .suffix = {}},
-         .normalise   = {},
-         .validate    = {}});
+         .editor
+         = AdvancedSettingSpinBox{.minimum = 1, .maximum = 4, .singleStep = 1, .suffix = {}, .specialValueText = {}},
+         .normalise = {},
+         .validate  = {}});
     advancedSettingsRegistry->add<Settings::Gui::SeekBarMouseFocus>(
         {.category    = {tr("Interface"), tr("Seeking")},
          .label       = tr("Focus seekbars when clicked"),
@@ -442,9 +452,40 @@ void Widgets::registerAdvancedSettings()
         {.category    = {tr("Playback"), tr("Decoding")},
          .label       = tr("VBR update interval"),
          .description = tr("Interval used to refresh VBR playback information. Set to 0 to disable."),
-         .editor      = AdvancedSettingSpinBox{.minimum = 0, .maximum = 300000, .singleStep = 100, .suffix = u" ms"_s},
+         .editor      = AdvancedSettingSpinBox{.minimum          = 0,
+                                               .maximum          = 300000,
+                                               .singleStep       = 100,
+                                               .suffix           = u" ms"_s,
+                                               .specialValueText = {}},
          .normalise   = {},
          .validate    = {}});
+    advancedSettingsRegistry->add<Settings::Core::Internal::RemoteReadAheadKb>(
+        {.category    = {tr("Playback"), tr("Buffering")},
+         .label       = tr("Read-ahead for remote streams"),
+         .description = tr("Maximum network data buffered for remote streams. Changes apply to newly opened "
+                           "streams."),
+         .editor      = AdvancedSettingSpinBox{.minimum          = 0,
+                                               .maximum          = 1048576,
+                                               .singleStep       = 256,
+                                               .suffix           = u" kB"_s,
+                                               .specialValueText = {}},
+         .normalise   = {},
+         .validate    = {}});
+    advancedSettingsRegistry->add<Settings::Gui::Internal::OutputDeviceRefreshMs>(
+        {.category    = {tr("Playback"), tr("Output")},
+         .label       = tr("Device refresh interval"),
+         .description = tr("Interval used to refresh the list of available output devices. Set to 0 to disable."),
+         .editor      = AdvancedSettingSpinBox{.minimum          = 0,
+                                               .maximum          = 60000,
+                                               .singleStep       = 500,
+                                               .suffix           = u" ms"_s,
+                                               .specialValueText = tr("Disabled")},
+         .normalise =
+             [](const QVariant& value) {
+                 const int interval = value.toInt();
+                 return interval <= 0 ? 0 : std::max(interval, 1000);
+             },
+         .validate = {}});
     advancedSettingsRegistry->add<Settings::Core::PreserveTimestamps>(
         {.category    = {tr("Tagging")},
          .label       = tr("Preserve timestamps"),

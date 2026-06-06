@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 
 #include "fycore_export.h"
 
-#include "playlist/playlistloader.h"
-
 #include <core/engine/audioloader.h>
 #include <utils/database/dbconnectionpool.h>
 
@@ -39,7 +37,9 @@ class MusicLibrary;
 class NetworkAccessManager;
 class PlayerController;
 class PlaylistHandler;
+class PlaylistLoader;
 class PluginManager;
+class RemoteIoService;
 class SettingsManager;
 class SortingRegistry;
 
@@ -68,6 +68,7 @@ public:
     [[nodiscard]] std::shared_ptr<PlaylistLoader> playlistLoader() const;
     [[nodiscard]] std::shared_ptr<AudioLoader> audioLoader() const;
     [[nodiscard]] std::shared_ptr<NetworkAccessManager> networkManager() const;
+    [[nodiscard]] std::shared_ptr<RemoteIoService> remoteIoService() const;
     [[nodiscard]] SortingRegistry* sortingRegistry() const;
     [[nodiscard]] DspRegistry* dspRegistry() const;
     [[nodiscard]] DspChainStore* dspChainStore() const;

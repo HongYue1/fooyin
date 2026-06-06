@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <core/playlist/playlisthandler.h>
 #include <gui/guiconstants.h>
 #include <gui/iconloader.h>
+#include <gui/trackmimedata.h>
 #include <gui/trackselectioncontroller.h>
 #include <gui/widgetprovider.h>
 #include <gui/widgets/editabletabbar.h>
@@ -219,6 +220,37 @@ FyWidget* PlaylistTabs::widgetAtIndex(int index) const
     return m_tabsWidget;
 }
 
+FyWidget* PlaylistTabs::widgetAtPosition(const QPoint& pos) const
+{
+    const QRect tabBarRect{m_tabs->tabBar()->mapTo(this, QPoint{}), m_tabs->tabBar()->size()};
+    if(tabBarRect.contains(pos)) {
+        return const_cast<PlaylistTabs*>(this); // NOLINT
+    }
+
+    if(!m_tabsWidget) {
+        return nullptr;
+    }
+
+    const QRect tabsRect{m_tabs->pos(), m_tabs->size()};
+    if(!tabsRect.contains(pos)) {
+        return nullptr;
+    }
+
+    return m_tabsWidget;
+}
+
+QRect PlaylistTabs::widgetGeometry(FyWidget* widget) const
+{
+    if(widget == this) {
+        return {QPoint{}, size()};
+    }
+    if(widget != m_tabsWidget) {
+        return {};
+    }
+
+    return {m_tabsWidget->mapTo(this, QPoint{}), m_tabsWidget->size()};
+}
+
 int PlaylistTabs::widgetCount() const
 {
     return m_tabsWidget ? 1 : 0;
@@ -397,7 +429,8 @@ void PlaylistTabs::contextMenuEvent(QContextMenuEvent* event)
 
 void PlaylistTabs::dragEnterEvent(QDragEnterEvent* event)
 {
-    if(event->mimeData()->hasUrls() || event->mimeData()->hasFormat(QString::fromLatin1(Constants::Mime::TrackIds))) {
+    if(event->mimeData()->hasUrls() || event->mimeData()->hasFormat(QString::fromLatin1(Constants::Mime::Tracks))
+       || event->mimeData()->hasFormat(QString::fromLatin1(Constants::Mime::TrackIds))) {
         event->acceptProposedAction();
     }
 }
@@ -470,7 +503,11 @@ void PlaylistTabs::dropEvent(QDropEvent* event)
         }
     }
 
-    if(event->mimeData()->hasFormat(QString::fromLatin1(Constants::Mime::TrackIds))) {
+    if(const auto mimeTracks = TrackMimeData::tracksFrom(event->mimeData()); mimeTracks && !mimeTracks->empty()) {
+        Q_EMIT trackListDropped(*mimeTracks, id);
+        event->acceptProposedAction();
+    }
+    else if(event->mimeData()->hasFormat(QString::fromLatin1(Constants::Mime::TrackIds))) {
         Q_EMIT tracksDropped(event->mimeData()->data(QString::fromLatin1(Constants::Mime::TrackIds)), id);
         event->acceptProposedAction();
     }

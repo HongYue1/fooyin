@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2023, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2023, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ constexpr auto Next         = "media-skip-forward";
 constexpr auto Repeat       = "media-playlist-repeat";
 constexpr auto RepeatTrack  = "media-playlist-repeat-song";
 constexpr auto Shuffle      = "media-playlist-shuffle";
+constexpr auto RandomPlay   = "media-playlist-random-play";
 constexpr auto VolumeHigh   = "audio-volume-high";
 constexpr auto VolumeMed    = "audio-volume-medium";
 constexpr auto VolumeLow    = "audio-volume-low";
@@ -128,6 +129,7 @@ constexpr auto Search           = "Fooyin.Context.Search";
 namespace Actions {
 constexpr auto AddFiles                  = "File.AddFiles";
 constexpr auto AddFolders                = "File.AddFolders";
+constexpr auto AddStreamUrl              = "File.AddStreamUrl";
 constexpr auto NewPlaylist               = "File.NewPlaylist";
 constexpr auto NewAutoPlaylist           = "File.NewAutoPlaylist";
 constexpr auto EditAutoPlaylist          = "File.EditAutoPlaylist";
@@ -228,6 +230,7 @@ constexpr auto DspManager                         = "Fooyin.Page.Playback.DspMan
 constexpr auto NowPlaying                         = "Fooyin.Page.Playback.NowPlaying";
 constexpr auto InterfaceGeneral                   = "Fooyin.Page.Interface.General";
 constexpr auto InterfaceDisplay                   = "Fooyin.Page.Interface.Display";
+constexpr auto InterfaceLayout                    = "Fooyin.Page.Interface.Layout";
 constexpr auto InterfaceTrackDisplay              = "Fooyin.Page.Interface.TrackDisplay";
 constexpr auto InterfaceContextMenuTrack          = "Fooyin.Page.Interface.ContextMenu.Track";
 constexpr auto InterfaceContextMenuPlaylistWidget = "Fooyin.Page.Interface.ContextMenu.PlaylistWidget";

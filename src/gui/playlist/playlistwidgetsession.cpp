@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2026, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2026, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ void PlaylistWidgetSession::selectionChanged(PlaylistWidgetSessionHost& host)
             continue;
         }
 
-        const auto track = index.data(PlaylistItem::Role::ItemData).value<PlaylistTrack>();
+        const auto track = index.data(PlaylistItem::Role::PersistentItemData).value<PlaylistTrack>();
         tracks.push_back(track.track);
         if(!modeCaps.playlistBackedSelection) {
             selectedTracks.emplace(track.track);
@@ -386,7 +386,7 @@ TrackList PlaylistWidgetSession::getTracks(const QModelIndexList& indexes)
 
     for(const QModelIndex& index : indexes) {
         if(index.isValid() && index.data(PlaylistItem::Type).toInt() == PlaylistItem::Track) {
-            auto track = index.data(PlaylistItem::ItemData).value<PlaylistTrack>();
+            auto track = index.data(PlaylistItem::PersistentItemData).value<PlaylistTrack>();
             if(track.isValid()) {
                 tracks.push_back(track.track);
             }
@@ -460,7 +460,7 @@ TrackList PlaylistWidgetSession::getAllTracks(QAbstractItemModel* model, const Q
 
         const int rowCount = model->rowCount(currentIndex);
         if(rowCount == 0 && currentIndex.data(PlaylistItem::Role::Type).toInt() == PlaylistItem::Track) {
-            auto track = currentIndex.data(PlaylistItem::ItemData).value<PlaylistTrack>();
+            auto track = currentIndex.data(PlaylistItem::PersistentItemData).value<PlaylistTrack>();
             if(track.isValid()) {
                 tracks.push_back(track.track);
             }

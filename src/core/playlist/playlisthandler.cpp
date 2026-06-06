@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2022, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2022, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -153,6 +153,7 @@ public:
     void resetShuffleOrder();
     void updateIndices();
     void savePlaylists();
+    PlaylistTrackList ensureDatabaseTracks(Playlist* playlist, const PlaylistTrackList& tracks) const;
     void replacePlaylistTracks(Playlist* playlist, const PlaylistTrackList& tracks,
                                PlaylistTrackChangeSource source           = PlaylistTrackChangeSource::External,
                                const TrackEntryIdSet& updatedTrackEntries = {});
@@ -420,6 +421,20 @@ void PlaylistHandlerPrivate::savePlaylists()
     }
 }
 
+PlaylistTrackList PlaylistHandlerPrivate::ensureDatabaseTracks(Playlist* playlist,
+                                                               const PlaylistTrackList& tracks) const
+{
+    if(!playlist || playlist->isTemporary()) {
+        return tracks;
+    }
+
+    PlaylistTrackList persistentTracks{tracks};
+    for(PlaylistTrack& track : persistentTracks) {
+        track.track = m_playlistConnector.ensureTrack(track.track);
+    }
+    return persistentTracks;
+}
+
 void PlaylistHandlerPrivate::replacePlaylistTracks(Playlist* playlist, const PlaylistTrackList& tracks,
                                                    PlaylistTrackChangeSource source,
                                                    const TrackEntryIdSet& updatedTrackEntries)
@@ -429,7 +444,7 @@ void PlaylistHandlerPrivate::replacePlaylistTracks(Playlist* playlist, const Pla
     }
 
     const PlaylistTrackList oldTracks = playlist->playlistTracks();
-    const PlaylistTrackList newTracks = PlaylistTrack::updateIndexes(tracks);
+    const PlaylistTrackList newTracks = PlaylistTrack::updateIndexes(ensureDatabaseTracks(playlist, tracks));
     if(playlistTracksSameData(oldTracks, newTracks)) {
         return;
     }

@@ -1,6 +1,6 @@
 /*
  * Fooyin
- * Copyright © 2024, Luke Taylor <LukeT1@proton.me>
+ * Copyright © 2024, Luke Taylor <luket@pm.me>
  *
  * Fooyin is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,13 @@
 #include <gui/configdialog.h>
 
 class QComboBox;
-class QDoubleSpinBox;
+class QCheckBox;
 class QGroupBox;
 class QSpinBox;
 
 namespace Fooyin {
 class ColourButton;
+class GradientEditor;
 
 namespace VuMeter {
 class VuMeterConfigDialog : public WidgetConfigDialog<VuMeterWidget, VuMeterWidget::ConfigData>
@@ -43,9 +44,12 @@ private:
     [[nodiscard]] VuMeterWidget::ConfigData config() const override;
     void setConfig(const VuMeterWidget::ConfigData& config) override;
 
-    QDoubleSpinBox* m_peakHold;
-    QDoubleSpinBox* m_falloff;
+    QSpinBox* m_peakHold;
+    QSpinBox* m_falloff;
+    QSpinBox* m_peakFalloff;
     QComboBox* m_updateFps;
+    QCheckBox* m_showLegend;
+    QGroupBox* m_peaksGroup;
 
     QSpinBox* m_channelSpacing;
     QSpinBox* m_barSize;
@@ -57,8 +61,7 @@ private:
     ColourButton* m_bgColour;
     ColourButton* m_peakColour;
     ColourButton* m_legendColour;
-    ColourButton* m_leftColour;
-    ColourButton* m_rightColour;
+    GradientEditor* m_barGradient;
 };
 } // namespace VuMeter
 } // namespace Fooyin
